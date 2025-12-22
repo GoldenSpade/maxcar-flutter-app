@@ -1,8 +1,9 @@
-/// Supabase configuration
-///
-/// This file contains the configuration for connecting to Supabase.
-/// For security, these values should be moved to environment variables in production.
+// Supabase configuration
+//
+// This file contains the configuration for connecting to Supabase.
+// For security, these values should be moved to environment variables in production.
 
+/// Supabase configuration class
 class SupabaseConfig {
   // Supabase URL (self-hosted on VPS)
   static const String supabaseUrl = 'https://api.digitalunion.io';
