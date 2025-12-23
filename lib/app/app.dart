@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/tracking/screens/tracking_screen.dart';
+
 class MaxCarApp extends ConsumerWidget {
   const MaxCarApp({super.key});
 
@@ -25,11 +27,7 @@ class MaxCarApp extends ConsumerWidget {
         ),
       ),
       themeMode: ThemeMode.system,
-      home: const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      ),
+      home: const TrackingScreen(),
     );
   }
 }
