@@ -56,7 +56,22 @@ class LocationNotifier extends StateNotifier<LocationState> {
   final PermissionService _permissionService;
 
   LocationNotifier(this._gpsService, this._permissionService)
-      : super(LocationState());
+      : super(LocationState()) {
+    // Start listening to GPS service status changes
+    _gpsService.listenToServiceStatus(
+      onStatusChange: (ServiceStatus status) {
+        if (status == ServiceStatus.enabled) {
+          // GPS was turned on - automatically start getting location
+          requestPermissionAndGetLocation();
+        } else if (status == ServiceStatus.disabled) {
+          // GPS was turned off
+          state = state.copyWith(
+            error: 'Location service is disabled. Please enable it in settings.',
+          );
+        }
+      },
+    );
+  }
 
   /// Request permission and get current location
   Future<void> requestPermissionAndGetLocation() async {
@@ -116,6 +131,8 @@ class LocationNotifier extends StateNotifier<LocationState> {
   /// Start tracking location updates
   void startTracking() {
     _gpsService.startTracking(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 0, // Update on every GPS reading for real-time tracking
       onPositionUpdate: (Position position) {
         state = LocationState(
           currentPosition: LatLng(position.latitude, position.longitude),
@@ -142,7 +159,7 @@ class LocationNotifier extends StateNotifier<LocationState> {
 
   @override
   void dispose() {
-    _gpsService.stopTracking();
+    _gpsService.dispose();
     super.dispose();
   }
 }

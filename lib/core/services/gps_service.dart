@@ -4,10 +4,28 @@ import 'package:geolocator/geolocator.dart';
 /// Service for GPS location tracking
 class GpsService {
   StreamSubscription<Position>? _positionStreamSubscription;
+  StreamSubscription<ServiceStatus>? _serviceStatusSubscription;
 
   /// Check if location services are enabled
   Future<bool> isLocationServiceEnabled() async {
     return await Geolocator.isLocationServiceEnabled();
+  }
+
+  /// Listen to GPS service status changes
+  void listenToServiceStatus({
+    required Function(ServiceStatus) onStatusChange,
+  }) {
+    _serviceStatusSubscription?.cancel();
+    _serviceStatusSubscription = Geolocator.getServiceStatusStream().listen(
+      onStatusChange,
+      cancelOnError: false,
+    );
+  }
+
+  /// Stop listening to service status
+  void stopListeningToServiceStatus() {
+    _serviceStatusSubscription?.cancel();
+    _serviceStatusSubscription = null;
   }
 
   /// Get current position
@@ -126,6 +144,7 @@ class GpsService {
   /// Dispose resources
   void dispose() {
     stopTracking();
+    stopListeningToServiceStatus();
   }
 }
 

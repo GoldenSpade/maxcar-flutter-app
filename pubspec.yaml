@@ -42,6 +42,7 @@ dependencies:
   # GPS & Location
   geolocator: ^13.0.2
   permission_handler: ^11.3.1
+  flutter_compass: ^0.8.0
 
   # Database
   supabase_flutter: ^2.8.0
