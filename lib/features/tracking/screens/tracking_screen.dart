@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../providers/location_provider.dart';
 import '../providers/compass_provider.dart';
+import '../providers/tracking_provider.dart';
+import '../../history/screens/trips_list_screen.dart';
 
 /// Main tracking screen with map
 class TrackingScreen extends ConsumerStatefulWidget {
@@ -19,6 +23,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   bool _isTrackingStarted = false;
   bool _autoCenterEnabled = true;
   LatLng? _lastCenteredPosition;
+  Timer? _durationTimer;
 
   @override
   void initState() {
@@ -27,6 +32,17 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(locationProvider.notifier).requestPermissionAndGetLocation();
     });
+
+    // Start duration timer
+    _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _durationTimer?.cancel();
+    super.dispose();
   }
 
   void _startContinuousTracking() {
@@ -36,15 +52,48 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     }
   }
 
+  void _toggleRecording() async {
+    final trackingState = ref.read(trackingProvider);
+
+    if (trackingState.isRecording) {
+      // Stop recording
+      await ref.read(trackingProvider.notifier).stopTracking();
+    } else {
+      // Start recording
+      await ref.read(trackingProvider.notifier).startTracking();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final locationState = ref.watch(locationProvider);
     final compassState = ref.watch(compassProvider);
+    final trackingState = ref.watch(trackingProvider);
 
     // Start continuous tracking when we have initial position
     if (locationState.currentPosition != null && !_isTrackingStarted) {
       _startContinuousTracking();
     }
+
+    // Add GPS points to route when recording
+    ref.listen<LocationState>(locationProvider, (previous, next) {
+      if (trackingState.isRecording && next.currentPosition != null) {
+        // Create Position object from location state
+        final position = Position(
+          latitude: next.currentPosition!.latitude,
+          longitude: next.currentPosition!.longitude,
+          timestamp: DateTime.now(),
+          accuracy: next.accuracy ?? 0,
+          altitude: next.altitude ?? 0,
+          altitudeAccuracy: 0,
+          heading: next.bearing ?? 0,
+          headingAccuracy: 0,
+          speed: next.speed ?? 0,
+          speedAccuracy: 0,
+        );
+        ref.read(trackingProvider.notifier).addPoint(position);
+      }
+    });
 
     // Auto-center map ONLY when position changes (not on every compass update)
     if (locationState.currentPosition != null &&
@@ -70,6 +119,19 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       appBar: AppBar(
         title: const Text('MaxCar Tracker'),
         actions: [
+          // History button
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TripsListScreen(),
+                ),
+              );
+            },
+            tooltip: 'Trip History',
+          ),
           // Auto-center toggle button
           IconButton(
             icon: Icon(_autoCenterEnabled ? Icons.gps_fixed : Icons.gps_not_fixed),
@@ -111,6 +173,18 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 maxNativeZoom: 19,
                 maxZoom: 18,
               ),
+
+              // Route polyline
+              if (trackingState.currentRoute.isNotEmpty)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: ref.read(trackingProvider.notifier).routePoints,
+                      color: Colors.blue,
+                      strokeWidth: 4.0,
+                    ),
+                  ],
+                ),
 
               // Current position marker
               if (locationState.currentPosition != null)
@@ -176,8 +250,51 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               ),
             ),
 
+          // Recording indicator
+          if (trackingState.isRecording)
+            Positioned(
+              top: 16,
+              left: 16,
+              right: 16,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.fiber_manual_record, color: Colors.red.shade700, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Recording • ${_formatDuration(trackingState.duration)}',
+                        style: TextStyle(
+                          color: Colors.red.shade700,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '${(trackingState.totalDistance / 1000).toStringAsFixed(2)} km',
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
           // Error message
-          if (locationState.error != null)
+          if (locationState.error != null && !trackingState.isRecording)
             Positioned(
               top: 16,
               left: 16,
@@ -227,26 +344,47 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _InfoItem(
-                            icon: Icons.speed,
-                            label: 'Speed',
-                            value:
-                                '${locationState.speedKmh?.toStringAsFixed(1) ?? '0.0'} km/h',
-                          ),
-                          _InfoItem(
-                            icon: Icons.my_location,
-                            label: 'Accuracy',
-                            value:
-                                '${locationState.accuracy?.toStringAsFixed(0) ?? '0'} m',
-                          ),
-                          _InfoItem(
-                            icon: Icons.height,
-                            label: 'Altitude',
-                            value:
-                                '${locationState.altitude?.toStringAsFixed(0) ?? '0'} m',
-                          ),
-                        ],
+                        children: trackingState.isRecording
+                            ? [
+                                _InfoItem(
+                                  icon: Icons.speed,
+                                  label: 'Speed',
+                                  value:
+                                      '${locationState.speedKmh?.toStringAsFixed(1) ?? '0.0'} km/h',
+                                ),
+                                _InfoItem(
+                                  icon: Icons.trending_up,
+                                  label: 'Avg Speed',
+                                  value:
+                                      '${trackingState.avgSpeedKmh.toStringAsFixed(1)} km/h',
+                                ),
+                                _InfoItem(
+                                  icon: Icons.arrow_upward,
+                                  label: 'Max Speed',
+                                  value:
+                                      '${trackingState.maxSpeedKmh.toStringAsFixed(1)} km/h',
+                                ),
+                              ]
+                            : [
+                                _InfoItem(
+                                  icon: Icons.speed,
+                                  label: 'Speed',
+                                  value:
+                                      '${locationState.speedKmh?.toStringAsFixed(1) ?? '0.0'} km/h',
+                                ),
+                                _InfoItem(
+                                  icon: Icons.my_location,
+                                  label: 'Accuracy',
+                                  value:
+                                      '${locationState.accuracy?.toStringAsFixed(0) ?? '0'} m',
+                                ),
+                                _InfoItem(
+                                  icon: Icons.height,
+                                  label: 'Altitude',
+                                  value:
+                                      '${locationState.altitude?.toStringAsFixed(0) ?? '0'} m',
+                                ),
+                              ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -265,18 +403,47 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: locationState.currentPosition != null
-            ? () {
-                _mapController.move(
-                  locationState.currentPosition!,
-                  15.0,
-                );
-              }
-            : null,
-        child: const Icon(Icons.my_location),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // Record button
+          FloatingActionButton(
+            heroTag: 'record_btn',
+            onPressed: _toggleRecording,
+            backgroundColor: trackingState.isRecording ? Colors.red : Colors.green,
+            child: Icon(
+              trackingState.isRecording ? Icons.stop : Icons.fiber_manual_record,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Center location button
+          FloatingActionButton(
+            heroTag: 'center_btn',
+            onPressed: locationState.currentPosition != null
+                ? () {
+                    _mapController.move(
+                      locationState.currentPosition!,
+                      15.0,
+                    );
+                  }
+                : null,
+            child: const Icon(Icons.my_location),
+          ),
+        ],
       ),
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+
+    if (hours > 0) {
+      return '${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(seconds)}';
+    }
+    return '${twoDigits(minutes)}:${twoDigits(seconds)}';
   }
 }
 
