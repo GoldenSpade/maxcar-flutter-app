@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 class DatabaseService {
   static Database? _database;
   static const String _databaseName = 'maxcar_tracker.db';
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 2;
 
   // Table names
   static const String tripsTable = 'trips_local';
@@ -46,6 +46,12 @@ class DatabaseService {
         avg_speed REAL,
         max_speed REAL,
         transport_type TEXT,
+        fuel_used REAL,
+        fuel_cost REAL,
+        fuel_consumption REAL,
+        fuel_type TEXT,
+        fuel_price REAL,
+        currency TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         synced_at INTEGER,
@@ -99,11 +105,15 @@ class DatabaseService {
 
   /// Handle database upgrades
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Future migrations will be handled here
-    // Example:
-    // if (oldVersion < 2) {
-    //   await db.execute('ALTER TABLE trips_local ADD COLUMN new_field TEXT');
-    // }
+    // Migration from version 1 to 2: Add fuel consumption columns
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE $tripsTable ADD COLUMN fuel_used REAL');
+      await db.execute('ALTER TABLE $tripsTable ADD COLUMN fuel_cost REAL');
+      await db.execute('ALTER TABLE $tripsTable ADD COLUMN fuel_consumption REAL');
+      await db.execute('ALTER TABLE $tripsTable ADD COLUMN fuel_type TEXT');
+      await db.execute('ALTER TABLE $tripsTable ADD COLUMN fuel_price REAL');
+      await db.execute('ALTER TABLE $tripsTable ADD COLUMN currency TEXT');
+    }
   }
 
   /// Close database

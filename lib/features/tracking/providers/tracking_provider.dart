@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/services/database_service.dart';
 import '../../../data/models/trip.dart';
 import '../../../data/models/location_point.dart';
+import '../../settings/providers/vehicle_settings_provider.dart';
 
 /// Recording state enum
 enum RecordingState {
@@ -74,9 +75,10 @@ class TrackingState {
 /// Tracking provider
 class TrackingNotifier extends StateNotifier<TrackingState> {
   final DatabaseService _dbService;
+  final Ref _ref;
   final Uuid _uuid = const Uuid();
 
-  TrackingNotifier(this._dbService) : super(TrackingState());
+  TrackingNotifier(this._dbService, this._ref) : super(TrackingState());
 
   /// Start tracking/recording
   Future<void> startTracking() async {
@@ -187,13 +189,26 @@ class TrackingNotifier extends StateNotifier<TrackingState> {
       final endTime = DateTime.now();
       final duration = endTime.difference(state.startTime!);
 
-      // Update trip with final statistics
+      // Get vehicle settings for fuel calculation
+      final vehicleSettings = _ref.read(vehicleSettingsProvider);
+
+      // Calculate fuel consumption
+      final fuelUsed = vehicleSettings.calculateFuelUsed(state.totalDistance);
+      final fuelCost = vehicleSettings.calculateFuelCost(state.totalDistance);
+
+      // Update trip with final statistics and fuel data
       final updatedTrip = state.currentTrip!.copyWith(
         endTime: endTime,
         distance: state.totalDistance,
         duration: duration.inSeconds,
         avgSpeed: state.avgSpeed,
         maxSpeed: state.maxSpeed ?? 0.0,
+        fuelUsed: fuelUsed,
+        fuelCost: fuelCost,
+        fuelConsumption: vehicleSettings.fuelConsumption,
+        fuelType: vehicleSettings.fuelType,
+        fuelPrice: vehicleSettings.fuelPrice,
+        currency: vehicleSettings.currency,
         updatedAt: endTime,
         modifiedAt: endTime,
       );
@@ -235,5 +250,5 @@ class TrackingNotifier extends StateNotifier<TrackingState> {
 final trackingProvider =
     StateNotifierProvider<TrackingNotifier, TrackingState>((ref) {
   final dbService = DatabaseService();
-  return TrackingNotifier(dbService);
+  return TrackingNotifier(dbService, ref);
 });

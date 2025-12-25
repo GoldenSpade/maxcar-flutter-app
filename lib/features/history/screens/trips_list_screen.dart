@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../providers/trips_provider.dart';
 import '../../../data/models/trip.dart';
+import '../../../core/utils/currency_utils.dart';
 import 'trip_detail_screen.dart';
 
 /// Trips history list screen
@@ -243,6 +244,25 @@ class _TripCard extends StatelessWidget {
                   ),
                 ],
               ),
+              if (trip.fuelCost != null && trip.fuelCost! > 0) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _StatItem(
+                      icon: Icons.local_gas_station,
+                      label: 'Fuel',
+                      value: '${trip.fuelUsed?.toStringAsFixed(2) ?? '0'} L',
+                    ),
+                    const SizedBox(width: 24),
+                    _StatItem(
+                      icon: Icons.attach_money,
+                      label: 'Cost',
+                      value: CurrencyUtils.formatPrice(
+                          trip.fuelCost ?? 0, trip.currency ?? 'USD'),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

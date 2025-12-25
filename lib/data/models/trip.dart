@@ -11,6 +11,15 @@ class Trip {
   final double? avgSpeed; // in km/h
   final double? maxSpeed; // in km/h
   final String? transportType; // 'car', 'bike', 'walk', 'unknown'
+
+  // Fuel consumption data
+  final double? fuelUsed; // in liters
+  final double? fuelCost; // cost in currency
+  final double? fuelConsumption; // L/100km at time of trip
+  final String? fuelType; // fuel type at time of trip
+  final double? fuelPrice; // price per liter at time of trip
+  final String? currency; // currency at time of trip
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -28,6 +37,12 @@ class Trip {
     this.avgSpeed,
     this.maxSpeed,
     this.transportType,
+    this.fuelUsed,
+    this.fuelCost,
+    this.fuelConsumption,
+    this.fuelType,
+    this.fuelPrice,
+    this.currency,
     DateTime? createdAt,
     DateTime? updatedAt,
     this.syncedAt,
@@ -47,6 +62,12 @@ class Trip {
     double? avgSpeed,
     double? maxSpeed,
     String? transportType,
+    double? fuelUsed,
+    double? fuelCost,
+    double? fuelConsumption,
+    String? fuelType,
+    double? fuelPrice,
+    String? currency,
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? syncedAt,
@@ -62,6 +83,12 @@ class Trip {
       avgSpeed: avgSpeed ?? this.avgSpeed,
       maxSpeed: maxSpeed ?? this.maxSpeed,
       transportType: transportType ?? this.transportType,
+      fuelUsed: fuelUsed ?? this.fuelUsed,
+      fuelCost: fuelCost ?? this.fuelCost,
+      fuelConsumption: fuelConsumption ?? this.fuelConsumption,
+      fuelType: fuelType ?? this.fuelType,
+      fuelPrice: fuelPrice ?? this.fuelPrice,
+      currency: currency ?? this.currency,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncedAt: syncedAt ?? this.syncedAt,
@@ -81,6 +108,12 @@ class Trip {
       'avg_speed': avgSpeed,
       'max_speed': maxSpeed,
       'transport_type': transportType,
+      'fuel_used': fuelUsed,
+      'fuel_cost': fuelCost,
+      'fuel_consumption': fuelConsumption,
+      'fuel_type': fuelType,
+      'fuel_price': fuelPrice,
+      'currency': currency,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -106,6 +139,20 @@ class Trip {
           ? (json['max_speed'] as num).toDouble()
           : null,
       transportType: json['transport_type'] as String?,
+      fuelUsed: json['fuel_used'] != null
+          ? (json['fuel_used'] as num).toDouble()
+          : null,
+      fuelCost: json['fuel_cost'] != null
+          ? (json['fuel_cost'] as num).toDouble()
+          : null,
+      fuelConsumption: json['fuel_consumption'] != null
+          ? (json['fuel_consumption'] as num).toDouble()
+          : null,
+      fuelType: json['fuel_type'] as String?,
+      fuelPrice: json['fuel_price'] != null
+          ? (json['fuel_price'] as num).toDouble()
+          : null,
+      currency: json['currency'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -123,6 +170,12 @@ class Trip {
       'avg_speed': avgSpeed,
       'max_speed': maxSpeed,
       'transport_type': transportType,
+      'fuel_used': fuelUsed,
+      'fuel_cost': fuelCost,
+      'fuel_consumption': fuelConsumption,
+      'fuel_type': fuelType,
+      'fuel_price': fuelPrice,
+      'currency': currency,
       'created_at': createdAt.millisecondsSinceEpoch,
       'updated_at': updatedAt.millisecondsSinceEpoch,
       'synced_at': syncedAt?.millisecondsSinceEpoch,
@@ -151,6 +204,20 @@ class Trip {
           ? (map['max_speed'] as num).toDouble()
           : null,
       transportType: map['transport_type'] as String?,
+      fuelUsed: map['fuel_used'] != null
+          ? (map['fuel_used'] as num).toDouble()
+          : null,
+      fuelCost: map['fuel_cost'] != null
+          ? (map['fuel_cost'] as num).toDouble()
+          : null,
+      fuelConsumption: map['fuel_consumption'] != null
+          ? (map['fuel_consumption'] as num).toDouble()
+          : null,
+      fuelType: map['fuel_type'] as String?,
+      fuelPrice: map['fuel_price'] != null
+          ? (map['fuel_price'] as num).toDouble()
+          : null,
+      currency: map['currency'] as String?,
       createdAt:
           DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
       updatedAt:

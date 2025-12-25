@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../providers/trips_provider.dart';
+import '../../../core/utils/currency_utils.dart';
 
 /// Trip detail screen showing map and statistics
 class TripDetailScreen extends ConsumerStatefulWidget {
@@ -280,6 +281,38 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
                       label: 'GPS Points',
                       value: '${detailState.points.length}',
                     ),
+                    if (trip.fuelCost != null && trip.fuelCost! > 0) ...[
+                      const Divider(height: 24),
+                      Text(
+                        'Fuel Consumption',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      _DetailRow(
+                        icon: Icons.local_gas_station,
+                        label: 'Fuel Used',
+                        value: '${trip.fuelUsed?.toStringAsFixed(2) ?? '0'} L',
+                      ),
+                      _DetailRow(
+                        icon: Icons.attach_money,
+                        label: 'Fuel Cost',
+                        value: CurrencyUtils.formatPrice(
+                            trip.fuelCost ?? 0, trip.currency ?? 'USD'),
+                      ),
+                      _DetailRow(
+                        icon: Icons.speed,
+                        label: 'Consumption Rate',
+                        value:
+                            '${trip.fuelConsumption?.toStringAsFixed(1) ?? '0'} L/100km',
+                      ),
+                      _DetailRow(
+                        icon: Icons.info_outline,
+                        label: 'Fuel Type',
+                        value: trip.fuelType ?? 'Unknown',
+                      ),
+                    ],
                   ],
                 ),
               ),

@@ -9,6 +9,7 @@ import '../providers/location_provider.dart';
 import '../providers/compass_provider.dart';
 import '../providers/tracking_provider.dart';
 import '../../history/screens/trips_list_screen.dart';
+import '../../settings/screens/vehicle_settings_screen.dart';
 
 /// Main tracking screen with map
 class TrackingScreen extends ConsumerStatefulWidget {
@@ -119,6 +120,19 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       appBar: AppBar(
         title: const Text('MaxCar Tracker'),
         actions: [
+          // Settings button
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const VehicleSettingsScreen(),
+                ),
+              );
+            },
+            tooltip: 'Vehicle Settings',
+          ),
           // History button
           IconButton(
             icon: const Icon(Icons.history),
